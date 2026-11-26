@@ -35,9 +35,9 @@ fixed, the file is read back after writing, and the SHA-256 of the
 written bytes is printed so any later run can prove nothing changed.
 """
 
-import hashlib
-import os
-import sys
+from hashlib import sha256
+from os import chmod, makedirs
+from sys import exit, stdout
 
 GATE_MAX_CHARS = 140
 
@@ -149,10 +149,10 @@ def choose(entries):
 
 def main():
     line = choose(CANDIDATES)
-    os.makedirs("/output", exist_ok=True)
+    makedirs("/output", exist_ok=True)
     with open("/output/entry.txt", "w", encoding="utf-8") as handle:
         handle.write(line)
-    os.chmod("/output/entry.txt", 0o644)
+    chmod("/output/entry.txt", 0o644)
     # Read the file back and prove it holds exactly the chosen line:
     # same text, inside the gate, one line, not blank. Anything else
     # is a failure, and the program says so and stops instead of
@@ -160,20 +160,16 @@ def main():
     with open("/output/entry.txt", "rb") as handle:
         written_bytes = handle.read()
     written = written_bytes.decode("utf-8")
-    digest = hashlib.sha256(written_bytes).hexdigest()
+    digest = sha256(written_bytes).hexdigest()
     if written != line:
-        print("error: entry.txt does not hold the chosen line",
-              file=sys.stderr)
-        sys.exit(1)
+        exit("error: entry.txt does not hold the chosen line")
     if (len(written) < 1 or len(written) > GATE_MAX_CHARS
             or not written.strip() or "\n" in written):
-        print(f"error: entry.txt fails the gate: {len(written)} chars",
-              file=sys.stderr)
-        sys.exit(1)
-    print(line)
-    print(f"characters: {len(written)}")
-    print(f"sha256: {digest}")
+        exit(f"error: entry.txt fails the gate: {len(written)} chars")
+    stdout.write(line + "\n")
+    stdout.write(f"characters: {len(written)}\n")
+    stdout.write(f"sha256: {digest}\n")
 
 
 if __name__ == "__main__":
-    main()
+    exit(main())
